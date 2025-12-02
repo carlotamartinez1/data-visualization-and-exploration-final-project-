@@ -1,0 +1,200 @@
+---
+title: "finalproject3"
+format: pdf
+---
+
+```{r}
+
+knitr::opts_chunk$set(echo = TRUE)
+library(magrittr)
+library(dplyr)
+library(ggplot2)
+
+```
+
+
+```{r}
+
+poblacion <- read.csv("59011.csv", header = TRUE, sep ="\t")
+poblacion$Date <- poblacion$Periodo 
+head(poblacion)
+
+```
+
+
+```{r}
+#vector de reemplazo de meses
+meses <- c("enero" = "01", "febrero" = "02", "marzo" = "03", "abril" = "04",
+           "mayo" = "05", "junio" = "06", "julio" = "07", "agosto" = "08",
+           "septiembre" = "09", "octubre" = "10", "noviembre" = "11", "diciembre" = "12")
+
+# Reemplazar nombres de meses por su número 
+for (mes in names(meses)) {
+  poblacion$Date <- gsub(mes, meses[mes], poblacion$Date)
+}
+head(poblacion)
+
+# Quitar la palabra "de"
+poblacion$Date<- gsub(" de ", "-", poblacion$Date)
+
+# Convertir a clase Date
+poblacion$Julian <- julian(as.Date(poblacion$Date, format = "%d-%m-%Y"))
+###################
+head(poblacion)
+summary(poblacion)
+(poblacion$Total <- as.numeric(poblacion$Total))
+poblacion <- poblacion[!is.na(poblacion$Total), ]
+```
+
+
+
+```{r}
+#| label: line_plot
+# grafico
+(x_axis <- max(poblacion$Total, na.rm = T))
+(ylim_range <- c(0, ceiling(x_axis/5)*5))
+total_color <- hcl.colors(length(unique(poblacion$Nacionalidad)), palette = "Set3")
+par(mar = c(6, 8, 4, 10))
+#plot_total <- barplot(poblacion$Total, names.arg = poblacion$Nacionalidad, 
+#        las = 2, col = total_color, horiz = TRUE, xaxt = "n",
+#        main = "inmigracion extranjero")
+plot(Total ~ Julian, data = poblacion, subset = Nacionalidad == unique(poblacion$Nacionalidad)[1], ylim = c(0, 45),    col = total_color[1] )
+for(i in 2:length(unique(poblacion$Nacionalidad))){
+  lines(Total ~ Julian, data = poblacion, subset = Nacionalidad == unique(poblacion$Nacionalidad)[i], col = total_color[i])
+}
+axis(side = 1, at = seq(0, max(ylim_range), by = 5))
+
+legend("topright", 
+       legend = unique(poblacion$Nacionalidad), 
+       col = total_color, 
+       lwd = 2, 
+       title = "Nacionalidad", 
+       xpd = TRUE,
+       inset = c(-0.5, 0))
+# col = total_color[1]  la l especifica que quiero las lineas de colores y en el for loop la [i] para especificar que es el lenght the poblacion$nacionalidad.
+#xpd = TRUE: permite que la leyenda se dibuje fuera del área del gráfico
+```
+
+```{r}
+
+#| lablabel: create_new_columns
+#|  fig.width: 10
+#|  fig.height: 5
+#pais <- split(poblacion, f = poblacion$Nacionalidad)
+#print(pais)
+#america <- c(pais$Argentina, pais$Colombia, pais$Ecuador, pais$Honduras, pais$Paraguay, pais$Perú, pais$Venezuela)
+#print(america)
+
+poblacion$Zona <- dplyr::case_when(
+poblacion$Nacionalidad %in% c("Española", "Italia", "Rumanía", "Ucrania") ~ "Europa",
+poblacion$Nacionalidad %in% c("Colombia", "Argentina", "Venezuela", "Ecuador", "Perú", "Honduras", "Paraguay") ~ "América",
+poblacion$Nacionalidad %in% c("Marruecos") ~ "Africa",
+TRUE ~ "Otras")
+
+#countries <- unique(poblacion$Nacionalidad)
+#length(countries)
+#df1 <- poblacion[poblacion$Nacionalidad %in% countries[1:length(countries) / 3], ]
+
+```
+
+```{r}
+#| labal: ggplot_
+#| fig-width: 10
+#| fig-height: 10
+y_lim <- max(poblacion$Total, na.rm = T)
+ylim_range <- c(0, ceiling(y_lim/5)*5)
+point_plot <- ggplot(poblacion, aes(x = Julian, y = Total, color = Nacionalidad)) +
+  geom_line(alpha = 0.7, linewidth= 1) +
+  geom_point(alpha = 1, size = 2) +
+  facet_wrap(~ Zona, scales = "free_y") +
+   scale_y_continuous(
+   limits = ylim_range,
+    breaks = seq(0, ylim_range[2], by = 5)
+  ) +
+  labs(
+    title = "Foreign population by nationality divided by zone",
+    x = "Julian date",
+    y = "Total",
+    color = "Nationality"
+  ) +
+  theme(
+    panel.spacing = unit(0.6, "cm")
+  ) 
+  
+print(point_plot)
+#y_lim para crear yaxis con el total de la poblacion, ceiling para redondear al siguiente multiplo de 5 y dividirlo para crear el y axis.
+#aes = los datos que quiero que use en el ggplot
+#color= nacionalidades para que cada pais tenga un color diferente
+#facet_wrap = ~Zona, quiero tres graficos dependiendo de la zona.
+# free_y cada zona tenga propio eje y 
+# scale_continuous, hacer el set up de yaxis, limits = de donde a donde quiero que vaya, breaks = cuantas divisiones quiero que tenga el yaxis 
+#panel.spacing = dejar espacio entre los graficos.
+```
+```{r}
+#| label: setup_population2
+
+poblacion2 <- read.csv("export.csv", header = TRUE, sep =";")
+head(poblacion2)
+
+poblacion2$Año <- c("2021", "2021", "2021", "2021", "2022", "2022", "2022", "2022", "2023", "2023", "2023", "2023", "2024", "2024", "2024", "2024", "2025")
+
+
+
+```
+
+
+```{r}
+#convertir en number 
+
+poblacion2$Date <- poblacion2$Fecha
+
+meses <- c("enero" = "01", "febrero" = "02", "marzo" = "03", "abril" = "04",
+           "mayo" = "05", "junio" = "06", "julio" = "07", "agosto" = "08",
+           "septiembre" = "09", "octubre" = "10", "noviembre" = "11", "diciembre" = "12")
+
+# Reemplazar nombres de meses por su número 
+for (mes in names(meses)) {
+  poblacion2$Date <- gsub(mes, meses[mes], poblacion2$Date)
+}
+head(poblacion2)
+
+# Quitar la palabra "de"
+poblacion2$Date<- gsub(" de ", "-", poblacion2$Date)
+
+# Convertir a clase Date
+poblacion2$Julian2 <- julian(as.Date(poblacion2$Date, format = "%d-%m"))
+
+
+
+```
+
+```{r}
+
+
+
+plot3 <- ggplot(poblacion2, aes(x = Año, y = Población.residente, group = Date, color = Date)) +
+  geom_point(size = 2) +
+  geom_line() +
+ # scale_color_gradient(low = "blue", high = "red") +
+  labs(title = "Resident population",
+       x = "Year",
+       y = "Resident population",
+       color = "Quarters") +
+  theme_minimal()
+
+
+print(plot3)
+
+
+```
+
+|   | Category         | Subcategory     | Population | Variation | Growth (%) |
+|---|------------------|-----------------|------------|-----------|-------------|
+| 0 | TOTAL            |                 | 49077984   | 115612    | 0.24        |
+| 1 | Nationality      | Spanish         | 42225636   | 14819     | 0.04        |
+| 2 | Nationality      | Foreign         | 6852348    | 100793    | 1.49        |
+| 3 | Country of Birth | Spain           | 39698012   | -20505    | -0.05       |
+| 4 | Country of Birth | Foreign         | 9379972    | 136117    | 1.47        |
+
+
+
